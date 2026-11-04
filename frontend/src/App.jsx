@@ -32,22 +32,33 @@ function App() {
     setEndereco(null);
 
     try {
-      // Faz uma chamada HTTP para a rota criada no nosso proprio back-end em Python
-      const response = await fetch(`http://localhost:3001/api/cep/${cleanCep}`);
-      
-      // Converte os dados recebidos do back-end para um objeto JavaScript
-      const data = await response.json();
+      let data = null;
+      let ok = false;
 
-      // Verifica se o servidor retornou algum status de erro (como 400 ou 404)
-      if (!response.ok) {
-        setErro(data.error || 'Erro ao buscar o CEP.');
+      try {
+        // Tenta chamada no backend local
+        const response = await fetch(`http://localhost:3001/api/cep/${cleanCep}`);
+        data = await response.json();
+        ok = response.ok;
+      } catch {
+        // Se o backend local nao estiver disponivel (ex: deploy em producao), consulta o ViaCEP diretamente
+        const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+        data = await response.json();
+        if (data.erro) {
+          data = { error: 'CEP não encontrado.' };
+          ok = false;
+        } else {
+          ok = true;
+        }
+      }
+
+      if (!ok) {
+        setErro(data?.error || 'Erro ao buscar o CEP.');
       } else {
-        // Se a busca teve sucesso, salva o endereco no estado para exibir na tela
         setEndereco(data);
       }
     } catch (err) {
-      // Caso o servidor back-end esteja desligado ou inacessivel
-      setErro('Não foi possível conectar ao servidor backend.');
+      setErro('Erro ao consultar o serviço de CEP.');
     } finally {
       // Finaliza o estado de carregamento independente de sucesso ou falha
       setLoading(false);

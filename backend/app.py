@@ -16,6 +16,14 @@ app = Flask(__name__)
 # Habilita o CORS no nosso servidor para liberar o acesso ao front-end
 CORS(app)
 
+# Rota raiz para verificacao de status da API
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({
+        'status': 'API Correios Busca CEP Online',
+        'endpoint': '/api/cep/<cep>'
+    }), 200
+
 # Define uma rota (endereco na web) que aceita o metodo GET e recebe o CEP na propria URL
 @app.route('/api/cep/<cep>', methods=['GET'])
 def get_cep(cep):
