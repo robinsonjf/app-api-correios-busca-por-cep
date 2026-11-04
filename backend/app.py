@@ -1,8 +1,9 @@
+import os
 # Importa a biblioteca para trabalhar com expressoes regulares (buscar e substituir padroes de texto)
 import re
 
 # Importa o Flask (para criar o servidor web) e o jsonify (para formatar respostas no formato JSON)
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 
 # Importa o CORS para permitir que o navegador do front-end converse com este back-end sem bloqueios de seguranca
 from flask_cors import CORS
@@ -10,15 +11,30 @@ from flask_cors import CORS
 # Importa a biblioteca requests para fazer chamadas HTTP para sites e APIs externas
 import requests
 
+# Diretorio dos arquivos estaticos gerados pelo build do React
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+
 # Inicializa a aplicacao Flask (cria o nosso servidor)
-app = Flask(__name__)
+app = Flask(__name__, static_folder=static_dir, static_url_path='')
 
 # Habilita o CORS no nosso servidor para liberar o acesso ao front-end
 CORS(app)
 
-# Rota raiz para verificacao de status da API
-@app.route('/', methods=['GET'])
-def index():
+# Rota para servir o front-end React compilado
+@app.route('/', defaults={'path': ''}, methods=['GET'])
+@app.route('/<path:path>', methods=['GET'])
+def serve_frontend(path):
+    if path.startswith('api/'):
+        return jsonify({'error': 'Rota de API não encontrada.'}), 404
+
+    target = os.path.join(static_dir, path)
+    if path and os.path.exists(target) and os.path.isfile(target):
+        return send_from_directory(static_dir, path)
+
+    index_path = os.path.join(static_dir, 'index.html')
+    if os.path.exists(index_path):
+        return send_from_directory(static_dir, 'index.html')
+
     return jsonify({
         'status': 'API Correios Busca CEP Online',
         'endpoint': '/api/cep/<cep>'

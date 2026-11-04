@@ -35,20 +35,35 @@ function App() {
       let data = null;
       let ok = false;
 
+      // 1. Tenta a rota relativa /api/cep (quando hospedado na Vercel no mesmo dominio)
       try {
-        // Tenta chamada no backend local
-        const response = await fetch(`http://localhost:3001/api/cep/${cleanCep}`);
-        data = await response.json();
-        ok = response.ok;
-      } catch {
-        // Se o backend local nao estiver disponivel (ex: deploy em producao), consulta o ViaCEP diretamente
-        const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
-        data = await response.json();
-        if (data.erro) {
-          data = { error: 'CEP não encontrado.' };
-          ok = false;
-        } else {
+        const response = await fetch(`/api/cep/${cleanCep}`);
+        if (response.ok) {
+          data = await response.json();
           ok = true;
+        } else {
+          throw new Error();
+        }
+      } catch {
+        // 2. Tenta o backend local na porta 3001
+        try {
+          const response = await fetch(`http://localhost:3001/api/cep/${cleanCep}`);
+          if (response.ok) {
+            data = await response.json();
+            ok = true;
+          } else {
+            throw new Error();
+          }
+        } catch {
+          // 3. Fallback: consulta diretamente o ViaCEP
+          const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+          data = await response.json();
+          if (data.erro) {
+            data = { error: 'CEP não encontrado.' };
+            ok = false;
+          } else {
+            ok = true;
+          }
         }
       }
 
